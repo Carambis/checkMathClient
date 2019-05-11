@@ -1,6 +1,7 @@
 import {Component, OnInit} from '@angular/core';
 import {environment} from '../environments/environment';
-import {HttpClient} from '@angular/common/http';
+import {HttpClient, HttpEvent, HttpRequest, HttpResponse} from '@angular/common/http';
+import * as fileSaver from 'file-saver';
 
 @Component({
   selector: 'app-root',
@@ -18,9 +19,8 @@ export class AppComponent {
   url: string = environment.baseUrl + 'recognition/uploadFile';
 
   static downloadFile(data: Response) {
-    const blob = new Blob([JSON.parse(data.toString())], {type: 'text/csv'});
-    const url = window.URL.createObjectURL(blob);
-    window.open(url);
+    // const blob = new Blob([JSON.parse(data.toString())], {type: 'application/json'});
+    fileSaver.saveAs(data, 'filename.docx');
   }
 
   onUpload(event) {
@@ -30,6 +30,23 @@ export class AppComponent {
   }
 
   upload(event) {
-    this.http.post(this.url, event.files[0]).subscribe((data: Response) => AppComponent.downloadFile(data));
+    let formdata: FormData = new FormData();
+
+    formdata.append('file', event.files[0]);
+
+    const req = new HttpRequest('POST', this.url, formdata, {
+      reportProgress: true,
+      responseType: 'blob'
+    });
+
+    this.http.request(req).subscribe(event => {
+      if (event instanceof HttpResponse) {
+        AppComponent.downloadFile((<Response> event.body));
+      }
+    });
+    // this.http.post(this.url, event.files[0],
+    //   {
+    //     headers: {'Content-Type': 'multipart/form-data'}
+    // }).subscribe((data: Response) => AppComponent.downloadFile(data));
   }
 }
